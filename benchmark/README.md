@@ -117,10 +117,57 @@ the sweet spot.
 > actually the fastest non-map option (≈25 ns) because mismatches are rejected
 > at the first differing byte. Run the commands above to see the full table.
 
+### Large scale — 2,000,000 keys (words)
+
+The space advantage *grows* with the dataset. Reproduce with `-keys 2000000`.
+
+In-memory footprint:
+
+| impl               | bytes/key | vs sutrie |
+|--------------------|----------:|----------:|
+| slimtrie¹          |      6.74 |    0.57×  |
+| **sutrie**         |     11.77 |    1.00×  |
+| map                |     72.39 |    6.15×  |
+| go-radix           |    130.60 |   11.10×  |
+| derekparker-trie   |   2229.05 |  189.41×  |
+
+Note how `map` climbs from 50.99 → **72.39** bytes/key between 200k and 2M (it
+resizes to the next power-of-two bucket count and runs sparser), while `sutrie`
+*drops* from 12.37 → **11.77** — so its edge over `map` widens from ~4× to
+**~6×**. Serialized: sutrie 10.11 B/key (20.2 MB), slimtrie 5.71 B/key.
+
+Build (2M keys, single run):
+
+| impl               | build       | allocs/op  |
+|--------------------|------------:|-----------:|
+| map                |      0.43 s |      8,197 |
+| **sutrie**         |      1.15 s |    **126** |
+| go-radix           |      0.99 s |  8,544,099 |
+| slimtrie           |      2.50 s | 13,929,396 |
+| derekparker-trie   |      4.47 s | 47,103,526 |
+
+sutrie's allocation count stays essentially flat with scale (126 allocs for 2M
+keys).
+
+Lookup (2M keys):
+
+| impl               | hit ns/op | miss ns/op |
+|--------------------|----------:|-----------:|
+| map                |    161.2  |      53.4  |
+| slimtrie¹          |    285.6  |      n/a   |
+| go-radix           |    218.7  |     462.9  |
+| derekparker-trie   |    572.0  |    1009.0  |
+| **sutrie**         |    625.2  |     273.8  |
+
+At this size sutrie's *miss* lookups (≈274 ns) beat both go-radix (≈463 ns) and
+derekparker-trie (≈1009 ns) — a deep mismatch is rejected at the first differing
+byte — while hits remain its deliberate trade-off.
+
 ## Takeaways
 
-- **Memory is sutrie's headline:** ~4× smaller than a Go map and 10–190×
-  smaller than common Go tries, while remaining an *exact* set.
+- **Memory is sutrie's headline:** ~4–6× smaller than a Go map (the gap widens
+  with scale) and 10–190× smaller than common Go tries, while remaining an
+  *exact* set.
 - **Cheap to build:** essentially constant allocation count regardless of key
   count.
 - **Serializable:** native `Marshal`/`Unmarshal` at ~key-size on disk.

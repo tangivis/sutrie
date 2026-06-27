@@ -12,9 +12,10 @@ go get -u github.com/nobekanai/sutrie
 ## Benchmark
 
 `sutrie` is built for **memory efficiency**. On a 200,000-key dataset it uses
-roughly **4× less memory than Go's built-in `map`**, ~10× less than
-`armon/go-radix`, and ~190× less than `derekparker/trie`, while staying an
-*exact* membership set and supporting serialization:
+roughly **4× less memory than Go's built-in `map`** (≈6× at 2M keys — the gap
+widens with scale), ~10× less than `armon/go-radix`, and ~190× less than
+`derekparker/trie`, while staying an *exact* membership set and supporting
+serialization:
 
 | impl (in-memory)   | bytes/key | vs sutrie |
 |--------------------|----------:|----------:|
