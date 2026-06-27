@@ -9,6 +9,29 @@ efficiency.
 go get -u github.com/nobekanai/sutrie
 ```
 
+## Benchmark
+
+`sutrie` is built for **memory efficiency**. On a 200,000-key dataset it uses
+roughly **4× less memory than Go's built-in `map`**, ~10× less than
+`armon/go-radix`, and ~190× less than `derekparker/trie`, while staying an
+*exact* membership set and supporting serialization:
+
+| impl (in-memory)   | bytes/key | vs sutrie |
+|--------------------|----------:|----------:|
+| `slimtrie`¹        |      6.39 |    0.52×  |
+| **`sutrie`**       |     12.37 |    1.00×  |
+| built-in `map`     |     50.99 |    4.12×  |
+| `go-radix`         |    128.86 |   10.42×  |
+| `derekparker/trie` |   2347.55 |  189.77×  |
+
+¹ `slimtrie` (`openacid/slim`) is smaller still but is a *lossy* key→value
+index that can false-positive on absent keys, whereas `sutrie` is an exact set.
+
+The trade-off is lookup throughput: sutrie's succinct `rank`/`select` machinery
+is slower per hit than pointer-based tries or a `map`. See
+[`benchmark/`](benchmark/) for the full methodology, the time benchmarks, and
+instructions to reproduce the numbers on your own machine.
+
 ## Documentation
 
 A simple and common use case: querying whether the key appears in the dictionary or whether the prefix of the key is in
