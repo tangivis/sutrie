@@ -163,6 +163,40 @@ At this size sutrie's *miss* lookups (≈274 ns) beat both go-radix (≈463 ns) 
 derekparker-trie (≈1009 ns) — a deep mismatch is rejected at the first differing
 byte — while hits remain its deliberate trade-off.
 
+### Large scale — 2,000,000 keys (domains)
+
+Reversed domain names (`com.example.www`), the use case sutrie was designed for.
+Reproduce with `-keys 2000000 -dataset domains`.
+
+In-memory footprint:
+
+| impl               | bytes/key | vs sutrie |
+|--------------------|----------:|----------:|
+| slimtrie¹          |      6.37 |    0.34×  |
+| **sutrie**         |     18.78 |    1.00×  |
+| map                |     78.35 |    4.17×  |
+| go-radix           |    139.39 |    7.42×  |
+| derekparker-trie   |   3490.65 |  185.87×  |
+
+Serialized: sutrie 16.13 B/key (32.3 MB), slimtrie 5.49 B/key. (Domain keys are
+longer and share fewer prefixes than random words, so bytes/key is higher for
+the key-storing structures across the board.)
+
+Lookup (2M domain keys):
+
+| impl               | hit ns/op | miss ns/op |
+|--------------------|----------:|-----------:|
+| map                |    168.9  |      51.0  |
+| go-radix           |    246.5  |      12.8  |
+| slimtrie¹          |    417.2  |      n/a   |
+| derekparker-trie   |    790.8  |      49.2  |
+| **sutrie**         |    919.2  |      23.8  |
+
+On this dataset **misses are extremely cheap for the tries** — a reversed domain
+diverges within the first few bytes — so sutrie answers a miss in ≈24 ns,
+second only to go-radix (≈13 ns) and well ahead of `map` (≈51 ns). Hits remain
+the trade-off, as everywhere.
+
 ## Takeaways
 
 - **Memory is sutrie's headline:** ~4–6× smaller than a Go map (the gap widens
